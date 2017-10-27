@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
     Hash hash = new Hash();
+    AES aes = new AES();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,10 +24,9 @@ public class MainActivity extends AppCompatActivity {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     EditText passInput = findViewById(R.id.passInput);
                     String pass = passInput.getText().toString();
-
-                    Log.i("Unhashed Password", passInput.getText().toString());
-
                     String hashedPass = hash.hashPassword(pass);
+
+                    onEnter(pass, hashedPass);
                     if (hashedPass == "false") {
                         // There was a error hashing the password
                     }
@@ -34,5 +34,9 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+    }
+
+    private void onEnter(String pass, String hashedPass) {
+        System.out.println(pass + " - " + hashedPass);
     }
 }
