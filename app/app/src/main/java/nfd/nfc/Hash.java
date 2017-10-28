@@ -29,7 +29,6 @@ public class Hash {
             }
 
             String res = hexString.toString();
-            Log.i("Hashed Password", res);
             return res;
         } catch (NoSuchAlgorithmException err) {
             System.out.print(err);
