@@ -1,30 +1,36 @@
 package nfd.nfc;
 
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
 import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
+import android.nfc.NfcEvent;
+import android.nfc.Tag;
 import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.*;
-
-public class MainActivity extends AppCompatActivity implements NfcAdapter.CreateNdefMessageCallback, NfcAdapter.OnNdefPushCompleteCallback {
+public class MainActivity extends AppCompatActivity implements NfcAdapter.CreateNdefMessageCallback, NfcAdapter.OnNdefPushCompleteCallback, NfcAdapter.ReaderCallback  {
     Hash hash = new Hash();
     AES aes = new AES();
-    String[] unlockingDeviceKeys;
+    private EditText mEditText;
+    private String key = "1234";
+    public boolean isSending;
+    NfcAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mAdapter = NfcAdapter.getDefaultAdapter(this);
 
         EditText passInput = findViewById(R.id.passInput);
         passInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -47,9 +53,31 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
 
     private void onEnter(String pass, String hashedPass) {
         System.out.println(pass + " - " + hashedPass);
+
+        byte[] passEnc = aes.encrypt(pass, "Str");
+
+        System.out.println(passEnc);
     }
 
-    public void receiveResult() {
+    public void send(){
+
+        //disableReaderMode();
+
+        if (mAdapter == null) {
+            mEditText.setText("Sorry this device does not have NFC.");
+            return;
+        }
+
+        if (!mAdapter.isEnabled()) {
+            Toast.makeText(this, "Please enable NFC via Settings.", Toast.LENGTH_LONG).show();
+        }
+
+        mAdapter.setNdefPushMessageCallback(this, this);
+        mAdapter.setOnNdefPushCompleteCallback(this, this);
+
+    }
+
+    public void receive() {
         Intent intent = getIntent();
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) {
             Parcelable[] rawMessages = intent.getParcelableArrayExtra(
@@ -58,44 +86,39 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
             NdefMessage NDEFMessage = (NdefMessage) rawMessages[0]; // only one message transferred
             String message = new String(NDEFMessage.getRecords()[0].getPayload());
 
-            // On receive
-            File f = new File("config.json");
-            if (f.exists()) {
-                if(message.length()==1) {
-                    // Fehler an Sender senden: Schloss wurde schon einmal eingerichtet!
-                } else {
-                    //prüfen, ob key in gesamt key vorhanden
-                }
-            } else {
-                newLock(Integer.parseInt(message));
+            if(message.equals("accepted")) {
+                Intent activityIntent = new Intent(this, confirmationActivity.class);
+                startActivity(activityIntent);
+            }else {
+                Intent activityIntent = new Intent(this, confirmationActivity.class);
+                startActivity(activityIntent);
             }
+
+        } else {
+            //isLoading
         }
+
     }
 
-    public void newLock(int user){
-        String key = "";
-        for(int i=0; i<key.length(); i++) {
-            key = key + genCode(user);
-        }
-        try {
-            // key in datei schreiben
-        } catch (IOException e) {
-            System.out.println(e);
-            Context context = getApplicationContext();
-            CharSequence text = "File saving error...";
-            int duration = Toast.LENGTH_SHORT;
-
-            Toast toast = Toast.makeText(context, text, duration);
-            toast.show();
-        }
+    @Override
+    public NdefMessage createNdefMessage(NfcEvent nfcEvent) {
+        NdefRecord ndefRecord = NdefRecord.createMime("text/plain", key.getBytes());
+        NdefMessage ndefMessage = new NdefMessage(ndefRecord);
+        return ndefMessage;
     }
 
-    public String genCode(int user){
-        String out = "";
-        for(int i=0; i<16; i++){
-            int r = (int)Math.random()*10;
-            out = out + r;
-        }
-        return out;
+    @Override
+    public void onNdefPushComplete(NfcEvent event) {
+
+        isSending=false;
+        receive();
+
+    }
+
+    @Override
+    public void onTagDiscovered(Tag tag){
+
+        //no idea
+
     }
 }

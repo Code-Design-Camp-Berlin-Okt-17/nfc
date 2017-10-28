@@ -12,17 +12,22 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 public class AES {
-    public byte[] encrypt(String keyStr, String toEncrypt) throws Exception {
-        byte[] key = (keyStr).getBytes("UTF-8");
-        MessageDigest sha = MessageDigest.getInstance("SHA-256");
-        key = sha.digest(key);
-        key = Arrays.copyOf(key, 16);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+    public byte[] encrypt(String keyStr, String toEncrypt) {
+        try {
+            byte[] key = (keyStr).getBytes("UTF-8");
+            MessageDigest sha = MessageDigest.getInstance("SHA-256");
+            key = sha.digest(key);
+            key = Arrays.copyOf(key, 16);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
 
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-        byte[] encrypted = cipher.doFinal(toEncrypt.getBytes());
-        return encrypted;
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
+            byte[] encrypted = cipher.doFinal(toEncrypt.getBytes());
+            return encrypted;
+        } catch (NoSuchAlgorithmException | UnsupportedEncodingException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+            throw new EncryptionException(e);
+        }
+
     }
     public String decrypt(String keyStr, byte[] encrypted) {
         try {
@@ -43,7 +48,5 @@ public class AES {
         } catch (UnsupportedEncodingException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException | NoSuchPaddingException | NoSuchAlgorithmException e) {
             throw new EncryptionException(e);
         }
-
     }
-
 }
